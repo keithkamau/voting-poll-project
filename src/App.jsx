@@ -22,16 +22,18 @@ function App() {
 
   const handleAddOption = (text) => {
     // validation to prevent empty options
-    if (!text.trim()) return; 
+    if (!text.trim()) return;
     const newOption = { id: Date.now(), text, votes: 0 };
     setOptions([...options, newOption]);
   };
-  
+
   const handleVote = (id) => {
     if (hasVoted) return;
-    setOptions(options.map(opt => 
-      opt.id === id ? { ...opt, votes: opt.votes + 1 } : opt
-    ));
+    setOptions(
+      options.map((opt) =>
+        opt.id === id ? { ...opt, votes: opt.votes + 1 } : opt,
+      ),
+    );
     setHasVoted(true);
   };
 
@@ -41,10 +43,10 @@ function App() {
     localStorage.removeItem("poll_data");
     localStorage.removeItem("has_Voted");
   };
-  
+
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Voting Poll</h1>
+    <div className='min-h-screen bg-gray-100 p-8'>
+      <h1 className='text-3xl font-bold mb-8 text-center'>Voting Poll</h1>
 
       {/* Logic passed to Emmanuel Munene */}
       <PollForm onAdd={handleAddOption} />
@@ -52,10 +54,10 @@ function App() {
       {/* Logic passed to Favour Kendi */}
       <PollList options={options} onVote={handleVote} hasVoted={hasVoted} />
 
-      <div className="flex justify-center">
-        <button 
-          onClick={handleReset} 
-          className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
+      <div className='flex justify-center'>
+        <button
+          onClick={handleReset}
+          className='mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors'
         >
           Reset Poll
         </button>
