@@ -1,18 +1,104 @@
-# React + Vite
+# Voting Poll App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A responsive React mini-project built with Vite and Tailwind CSS v4. Users can add poll options, vote once, and see live results — all persisted via localStorage.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Contributors
 
-## React Compiler
+- [Keith Kamau](https://github.com/keithkamau)
+- [Emmanuel Torris](https://github.com/emmanueltorris-rgb)
+- [Emmanuel Munene](https://github.com/nesh069)
+- [Favour Kendi](https://github.com/favourkendi-dev)
+- [Kiplimo Kiptoo](https://github.com/kiplimokiptoo)
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+---
 
-Note: This will impact Vite dev & build performances.
+## Features
 
-## Expanding the ESLint configuration
+- Add, vote on, and delete poll options
+- Single vote per session — vote buttons disable after voting
+- Live vote counts and percentage progress bars
+- Leading option highlighted
+- Reset all votes and options
+- Data persists across page refreshes via localStorage
+- Responsive on mobile and desktop
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## Tech Stack
+
+- React 19
+- Vite
+- Tailwind CSS v4 via `@tailwindcss/vite`
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── PollForm.jsx
+│   ├── PollList.jsx
+│   └── PollOption.jsx
+├── App.jsx
+├── App.css
+├── index.css
+└── main.jsx
+```
+
+---
+
+## Setup
+
+1. Clone the repository and navigate into it
+
+   ```bash
+   git clone <your-repo-url>
+   cd voting-poll-project
+   ```
+
+2. Install dependencies
+
+   ```bash
+   npm install
+   ```
+
+3. Start the development server
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open `http://localhost:5173` in your browser
+
+---
+
+## Build for Production
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## Tailwind CSS v4 Config
+
+`vite.config.js`
+```js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+```
+
+`src/index.css`
+```css
+@import "tailwindcss";
+```
+---
