@@ -1,18 +1,58 @@
-# React + Vite
+# Voting Poll App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A responsive React mini-project built with Vite and Tailwind CSS. Users can add poll options, vote once, see live vote counts with percentage progress bars, reset vote totals, and keep data after refreshing the page through `localStorage`.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Vite-powered React app
+- Component structure: `App.jsx`, `PollForm.jsx`, `PollList.jsx`, and `PollOption.jsx`
+- Shared state managed in `App.jsx`
+- Props pass data down, event handlers send actions up
+- Users can submit new poll options
+- Vote buttons disable after the first vote
+- Reset button clears all vote counts back to zero
+- Poll options, vote counts, and vote status persist in `localStorage`
+- Responsive Tailwind CSS interface using cyan, indigo, amber, and rose accents
 
-## React Compiler
+## Setup
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+1. Install dependencies:
 
-Note: This will impact Vite dev & build performances.
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+2. Start the development server:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run dev
+```
+
+3. Build for production:
+
+```bash
+npm run build
+```
+
+4. Preview the production build:
+
+```bash
+npm run preview
+```
+
+## Project Structure
+
+```text
+src/
+  App.jsx
+  main.jsx
+  index.css
+  components/
+    PollForm.jsx
+    PollList.jsx
+    PollOption.jsx
+```
+
+## Collaboration Note
+
+For the class requirement, push this project to the shared GitHub repository and have each of the four members make their own commits from their GitHub accounts.
