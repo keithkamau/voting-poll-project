@@ -1,26 +1,34 @@
 import { useState } from "react";
 
-function PollForm({ onAdd }) {
+function PollForm({ onAdd, options }) {
 
   const [inputValue, setInputValue] = useState("");
-
   const [errorMessage, setErrorMessage] = useState("");
 
   function handleSubmit(e) {
-        e.preventDefault();
+    e.preventDefault();
 
-        if (inputValue === "") {
+    if (inputValue === "") {
       setErrorMessage("Please type an option before submitting.");
       return;
     }
 
-       if (inputValue.length < 2) {
+    if (inputValue.length < 2) {
       setErrorMessage("Option must be at least 2 characters.");
       return;
     }
 
-    onAdd(inputValue);
+    const isDuplicate = options.some(function (option) {
+      return option.label.toLowerCase() === inputValue.toLowerCase();
+    });
 
+    if (isDuplicate) {
+      setErrorMessage("That option already exists!");
+      return;
+    }
+
+    // only reaches here if ALL checks passed
+    onAdd(inputValue);
     setInputValue("");
     setErrorMessage("");
   }
