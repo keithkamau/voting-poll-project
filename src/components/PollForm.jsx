@@ -1,4 +1,4 @@
-function PollForm({ optionText, onOptionTextChange, onSubmit }) {
+function PollForm({ optionText, onOptionTextChange, onSubmit, errorMessage }) {
   return (
     <form
       onSubmit={onSubmit}
@@ -26,6 +26,9 @@ function PollForm({ optionText, onOptionTextChange, onSubmit }) {
           Add Option
         </button>
       </div>
+      {errorMessage ? (
+        <p className='mt-2 text-sm text-rose-600'>{errorMessage}</p>
+      ) : null}
     </form>
   );
 }
