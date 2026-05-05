@@ -1,4 +1,4 @@
-function PollForm({ optionText, onOptionTextChange, onSubmit }) {
+function PollForm({ optionText, onOptionTextChange, onSubmit, errorMessage }) {
   return (
     <form
       onSubmit={onSubmit}
@@ -16,7 +16,7 @@ function PollForm({ optionText, onOptionTextChange, onSubmit }) {
           type='text'
           value={optionText}
           onChange={onOptionTextChange}
-          placeholder='Type an option, e.g. Angular'
+          placeholder='Type an option'
           className='min-h-11 flex-1 rounded-lg border border-slate-300 bg-white px-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100'
         />
         <button
@@ -26,6 +26,9 @@ function PollForm({ optionText, onOptionTextChange, onSubmit }) {
           Add Option
         </button>
       </div>
+      {errorMessage ? (
+        <p className='mt-2 text-sm text-rose-600'>{errorMessage}</p>
+      ) : null}
     </form>
   );
 }

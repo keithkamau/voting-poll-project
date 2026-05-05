@@ -47,6 +47,7 @@ function App() {
     readStoredValue(STORAGE_KEYS.hasVoted, false),
   );
   const [newOptionText, setNewOptionText] = useState("");
+  const [addOptionError, setAddOptionError] = useState("");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.options, JSON.stringify(options));
@@ -57,6 +58,7 @@ function App() {
 
   const handleOptionTextChange = (event) => {
     setNewOptionText(event.target.value);
+    setAddOptionError("");
   };
 
   const handleAddOption = (event) => {
@@ -64,6 +66,15 @@ function App() {
 
     const trimmedText = newOptionText.trim();
     if (!trimmedText) return;
+
+    const isDuplicate = options.some(
+      (option) => option.text.trim().toLowerCase() === trimmedText.toLowerCase(),
+    );
+
+    if (isDuplicate) {
+      setAddOptionError("This option already exists.");
+      return;
+    }
 
     setOptions((currentOptions) => [
       ...currentOptions,
@@ -124,6 +135,7 @@ function App() {
                 optionText={newOptionText}
                 onOptionTextChange={handleOptionTextChange}
                 onSubmit={handleAddOption}
+                errorMessage={addOptionError}
               />
 
               <div className='mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>

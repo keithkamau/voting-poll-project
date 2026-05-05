@@ -1,58 +1,104 @@
 # Voting Poll App
 
-A responsive React mini-project built with Vite and Tailwind CSS. Users can add poll options, vote once, see live vote counts with percentage progress bars, reset vote totals, and keep data after refreshing the page through `localStorage`.
+A responsive React mini-project built with Vite and Tailwind CSS v4. Users can add poll options, vote once, and see live results — all persisted via localStorage.
+
+---
+
+## Contributors
+
+- [Keith Kamau](https://github.com/keithkamau)
+- [Emmanuel Torris](https://github.com/emmanueltorris-rgb)
+- [Emmanuel Munene](https://github.com/nesh069)
+- [Favour Kendi](https://github.com/favourkendi-dev)
+- [Kiplimo Kiptoo](https://github.com/kiplimokiptoo)
+
+---
 
 ## Features
 
-- Vite-powered React app
-- Component structure: `App.jsx`, `PollForm.jsx`, `PollList.jsx`, and `PollOption.jsx`
-- Shared state managed in `App.jsx`
-- Props pass data down, event handlers send actions up
-- Users can submit new poll options
-- Vote buttons disable after the first vote
-- Reset button clears all vote counts back to zero
-- Poll options, vote counts, and vote status persist in `localStorage`
-- Responsive Tailwind CSS interface using cyan, indigo, amber, and rose accents
+- Add, vote on, and delete poll options
+- Single vote per session — vote buttons disable after voting
+- Live vote counts and percentage progress bars
+- Leading option highlighted
+- Reset all votes and options
+- Data persists across page refreshes via localStorage
+- Responsive on mobile and desktop
 
-## Setup
+---
 
-1. Install dependencies:
+## Tech Stack
 
-```bash
-npm install
-```
+- React 19
+- Vite
+- Tailwind CSS v4 via `@tailwindcss/vite`
 
-2. Start the development server:
-
-```bash
-npm run dev
-```
-
-3. Build for production:
-
-```bash
-npm run build
-```
-
-4. Preview the production build:
-
-```bash
-npm run preview
-```
+---
 
 ## Project Structure
 
-```text
+```
 src/
-  App.jsx
-  main.jsx
-  index.css
-  components/
-    PollForm.jsx
-    PollList.jsx
-    PollOption.jsx
+├── components/
+│   ├── PollForm.jsx
+│   ├── PollList.jsx
+│   └── PollOption.jsx
+├── App.jsx
+├── App.css
+├── index.css
+└── main.jsx
 ```
 
-## Collaboration Note
+---
 
-For the class requirement, push this project to the shared GitHub repository and have each of the four members make their own commits from their GitHub accounts.
+## Setup
+
+1. Clone the repository and navigate into it
+
+   ```bash
+   git clone <your-repo-url>
+   cd voting-poll-project
+   ```
+
+2. Install dependencies
+
+   ```bash
+   npm install
+   ```
+
+3. Start the development server
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open `http://localhost:5173` in your browser
+
+---
+
+## Build for Production
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## Tailwind CSS v4 Config
+
+`vite.config.js`
+```js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+```
+
+`src/index.css`
+```css
+@import "tailwindcss";
+```
+---
