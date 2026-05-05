@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "https://voting-poll-backend-qzou.onrender.com";
 
 function App() {
   const [options, setOptions] = useState([]);
