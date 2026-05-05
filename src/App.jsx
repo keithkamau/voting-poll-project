@@ -154,7 +154,7 @@ function App() {
               <div className='mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                 <div>
                   <h2 className='text-xl font-bold text-slate-950'>
-                    Poll Results
+                    Current Polls
                   </h2>
                   <p className='text-sm text-slate-500'>
                     {hasVoted
