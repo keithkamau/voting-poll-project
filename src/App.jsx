@@ -3,68 +3,60 @@ import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
 import { useAuth } from "./contexts/authContexts";
 
-const STORAGE_KEYS = {
-  options: "voting_poll_options",
-  hasVoted: "voting_poll_has_voted",
-};
-
-const createDefaultOptions = () => [
-  { id: crypto.randomUUID(), text: "William Ruto", votes: 0 },
-  { id: crypto.randomUUID(), text: "Fred Matiang'i", votes: 0 },
-  { id: crypto.randomUUID(), text: "Kalonzo Musyoka", votes: 0 },
-];
-
-const readStoredValue = (key, fallback) => {
-  try {
-    const savedValue = localStorage.getItem(key);
-    return savedValue ? JSON.parse(savedValue) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const hasOldDefaultOptions = (options) => {
-  const oldDefaultNames = ["React", "Vue", "Svelte"];
-
-  return (
-    Array.isArray(options) &&
-    options.length === oldDefaultNames.length &&
-    options.every((option) => oldDefaultNames.includes(option.text))
-  );
-};
+const API_BASE = "http://localhost:3000";
 
 function App() {
-  const { loading, userLoggedIn, currentuser } = useAuth();
-
-  const [options, setOptions] = useState(() => {
-    const savedOptions = readStoredValue(
-      STORAGE_KEYS.options,
-      createDefaultOptions(),
-    );
-
-    return hasOldDefaultOptions(savedOptions)
-      ? createDefaultOptions()
-      : savedOptions;
-  });
-  const [hasVoted, setHasVoted] = useState(() =>
-    readStoredValue(STORAGE_KEYS.hasVoted, false),
-  );
+  const [options, setOptions] = useState([]);
+  const [hasVoted, setHasVoted] = useState(false);
   const [newOptionText, setNewOptionText] = useState("");
   const [addOptionError, setAddOptionError] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  // Fetch options and voter status on mount
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.options, JSON.stringify(options));
-    localStorage.setItem(STORAGE_KEYS.hasVoted, JSON.stringify(hasVoted));
-  }, [options, hasVoted]);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [optionsRes, voterRes] = await Promise.all([
+          fetch(`${API_BASE}/options`),
+          fetch(`${API_BASE}/voter`),
+        ]);
+
+        if (!optionsRes.ok || !voterRes.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        const fetchedOptions = await optionsRes.json();
+        const voterData = await voterRes.json();
+
+        setOptions(fetchedOptions);
+        setHasVoted(voterData.hasVoted);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const totalVotes = options.reduce((total, option) => total + option.votes, 0);
+
+  if (loading) {
+    return (
+      <main className='min-h-screen bg-slate-950 px-4 py-6 text-slate-100 flex items-center justify-center sm:px-6 lg:px-8'>
+        <p className='text-lg font-semibold'>Loading poll data...</p>
+      </main>
+    );
+  }
 
   const handleOptionTextChange = (event) => {
     setNewOptionText(event.target.value);
     setAddOptionError("");
   };
 
-  const handleAddOption = (event) => {
+  const handleAddOption = async (event) => {
     event.preventDefault();
 
     const trimmedText = newOptionText.trim();
@@ -80,39 +72,106 @@ function App() {
       return;
     }
 
-    setOptions((currentOptions) => [
-      ...currentOptions,
-      { id: crypto.randomUUID(), text: trimmedText, votes: 0 },
-    ]);
-    setNewOptionText("");
+    try {
+      const newOption = {
+        id: crypto.randomUUID(),
+        text: trimmedText,
+        votes: 0,
+      };
+
+      const response = await fetch(`${API_BASE}/options`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newOption),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add option");
+      }
+
+      setOptions((prev) => [...prev, newOption]);
+      setNewOptionText("");
+    } catch (error) {
+      console.error("Error adding option:", error);
+      setAddOptionError("Failed to add option. Please try again.");
+    }
   };
 
-  const handleVote = (id) => {
+  const handleVote = async (id) => {
     if (hasVoted) return;
 
-    setOptions((currentOptions) =>
-      currentOptions.map((option) =>
-        option.id === id ? { ...option, votes: option.votes + 1 } : option,
-      ),
-    );
-    setHasVoted(true);
+    try {
+      const optionToUpdate = options.find((opt) => opt.id === id);
+      if (!optionToUpdate) return;
+
+      const updatedOption = {
+        ...optionToUpdate,
+        votes: optionToUpdate.votes + 1,
+      };
+
+      const response = await fetch(`${API_BASE}/options/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedOption),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to vote");
+      }
+
+      setOptions((prev) =>
+        prev.map((opt) => (opt.id === id ? updatedOption : opt))
+      );
+
+      // Update voter status
+      const voterResponse = await fetch(`${API_BASE}/voter`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasVoted: true }),
+      });
+
+      if (!voterResponse.ok) {
+        throw new Error("Failed to update voter status");
+      }
+
+      setHasVoted(true);
+    } catch (error) {
+      console.error("Error voting:", error);
+    }
   };
 
-  const handleReset = () => {
-    setOptions((currentOptions) =>
-      currentOptions.map((option) => ({ ...option, votes: 0 })),
-    );
-    setHasVoted(false);
+  const handleReset = async () => {
+    try {
+      // Reset all options
+      const resetPromises = options.map((option) =>
+        fetch(`${API_BASE}/options/${option.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...option, votes: 0 }),
+        })
+      );
+
+      await Promise.all(resetPromises);
+
+      // Reset voter status
+      const voterResponse = await fetch(`${API_BASE}/voter`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasVoted: false }),
+      });
+
+      if (!voterResponse.ok) {
+        throw new Error("Failed to reset voter status");
+      }
+
+      setOptions((prev) =>
+        prev.map((option) => ({ ...option, votes: 0 }))
+      );
+      setHasVoted(false);
+    } catch (error) {
+      console.error("Error resetting votes:", error);
+    }
   };
-  if (loading) {
-    return (
-      <main className='min-h-screen bg-slate-950 flex items-center justify-center'>
-        <div className='text-slate-100 text-xl font-semibold animate-pulse'>
-          Loading...
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className='min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8'>
