@@ -15,6 +15,6 @@ const router = createBrowserRouter([
   },
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
-]);
+], { basename: "/voting-poll-project" });
 
 export default router;
