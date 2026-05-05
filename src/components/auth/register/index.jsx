@@ -114,8 +114,8 @@ const Register = () => {
         <button
           onClick={onGoogleSignIn}
           disabled={isRegistering}
-          className="mt-4 w-full border border-slate-300 py-2 rounded-lg font-bold hover:bg-slate-50 transition disabled:opacity-50"
-        >
+          className="mt-4 w-full flex items-center flex-row justify-center border border-slate-300 py-2 rounded-lg font-bold hover:bg-slate-50 transition disabled:opacity-50"
+        > <img src="https://www.svgrepo.com/show/303108/google-icon-logo.svg" alt="Google Icon" className="w-5 h-5 mr-4" />
           Sign up with Google
         </button>
 
