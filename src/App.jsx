@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
+import { useAuth } from "./contexts/authContexts";
 
 const STORAGE_KEYS = {
   options: "voting_poll_options",
@@ -33,6 +34,8 @@ const hasOldDefaultOptions = (options) => {
 };
 
 function App() {
+  const { loading, userLoggedIn, currentuser } = useAuth();
+
   const [options, setOptions] = useState(() => {
     const savedOptions = readStoredValue(
       STORAGE_KEYS.options,
@@ -68,7 +71,8 @@ function App() {
     if (!trimmedText) return;
 
     const isDuplicate = options.some(
-      (option) => option.text.trim().toLowerCase() === trimmedText.toLowerCase(),
+      (option) =>
+        option.text.trim().toLowerCase() === trimmedText.toLowerCase(),
     );
 
     if (isDuplicate) {
@@ -100,6 +104,15 @@ function App() {
     );
     setHasVoted(false);
   };
+  if (loading) {
+    return (
+      <main className='min-h-screen bg-slate-950 flex items-center justify-center'>
+        <div className='text-slate-100 text-xl font-semibold animate-pulse'>
+          Loading...
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className='min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8'>
