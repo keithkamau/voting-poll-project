@@ -1,0 +1,133 @@
+import React, { useState } from "react";
+import { Navigate, Link } from "react-router-dom";
+import {
+  doCreateUserWithEmailAndPassword,
+  doSignInWithGoogle,
+} from "../../../firebase/auth";
+import { useAuth } from "../../../contexts/authContexts";
+
+const Register = () => {
+  const { userLoggedIn } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (isRegistering) return;
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    setIsRegistering(true);
+    setErrorMessage("");
+    try {
+      await doCreateUserWithEmailAndPassword(email, password);
+    } catch (err) {
+      setErrorMessage(getFriendlyError(err.code));
+      setIsRegistering(false);
+    }
+  };
+
+  const onGoogleSignIn = (e) => {
+    e.preventDefault();
+    if (isRegistering) return;
+    setIsRegistering(true);
+    setErrorMessage("");
+    doSignInWithGoogle().catch((err) => {
+      setErrorMessage(getFriendlyError(err.code));
+      setIsRegistering(false);
+    });
+  };
+
+  const getFriendlyError = (code) => {
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "An account with this email already exists.";
+      case "auth/invalid-email":
+        return "Invalid email address.";
+      case "auth/weak-password":
+        return "Password must be at least 6 characters.";
+      case "auth/popup-closed-by-user":
+        return "Google sign-in was cancelled.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
+  };
+
+  if (userLoggedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">
+          Create an Account
+        </h2>
+
+        {errorMessage && (
+          <p className="text-red-500 text-sm mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+            {errorMessage}
+          </p>
+        )}
+
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+          <button
+            type="submit"
+            disabled={isRegistering}
+            className="bg-cyan-500 text-white font-bold py-2 rounded-lg hover:bg-cyan-600 transition disabled:opacity-50"
+          >
+            {isRegistering ? "Creating account..." : "Register"}
+          </button>
+        </form>
+
+        <button
+          onClick={onGoogleSignIn}
+          disabled={isRegistering}
+          className="mt-4 w-full border border-slate-300 py-2 rounded-lg font-bold hover:bg-slate-50 transition disabled:opacity-50"
+        >
+          Sign up with Google
+        </button>
+
+        <p className="mt-4 text-sm text-slate-500 text-center">
+          Already have an account?{" "}
+          <Link to="/login" className="text-cyan-500 font-semibold">
+            Sign In
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
