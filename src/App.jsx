@@ -1,13 +1,28 @@
 import { useEffect, useState } from "react";
 import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
-import { useAuth } from "./contexts/authContexts";
 
 const API_BASE = "http://localhost:3000";
 
 function App() {
+<<<<<<< HEAD
   const [options, setOptions] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
+=======
+  const [options, setOptions] = useState(() => {
+    const savedOptions = readStoredValue(
+      STORAGE_KEYS.options,
+      createDefaultOptions(),
+    );
+
+    return hasOldDefaultOptions(savedOptions)
+      ? createDefaultOptions()
+      : savedOptions;
+  });
+  const [hasVoted, setHasVoted] = useState(() =>
+    readStoredValue(STORAGE_KEYS.hasVoted, false),
+  );
+>>>>>>> khelan_branch
   const [newOptionText, setNewOptionText] = useState("");
   const [addOptionError, setAddOptionError] = useState("");
   const [loading, setLoading] = useState(true);
