@@ -1,6 +1,6 @@
 # Voting Poll App
 
-A responsive React mini-project built with Vite and Tailwind CSS v4. Users can add poll options, vote once, and see live results — all persisted via localStorage.
+A responsive React mini-project built with Vite and Tailwind CSS v4. Users can add poll options, vote once, and see live results all persisted via JSON Server.
 
 ---
 
@@ -21,7 +21,7 @@ A responsive React mini-project built with Vite and Tailwind CSS v4. Users can a
 - Live vote counts and percentage progress bars
 - Leading option highlighted
 - Reset all votes and options
-- Data persists across page refreshes via localStorage
+- Data persists via JSON Server
 - Responsive on mobile and desktop
 
 ---
