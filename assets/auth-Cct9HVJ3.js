@@ -1,0 +1,1 @@
+import{b as t,s as a,G as r,c as o,d as i}from"./index-B-D3kpGu.js";const d=async(s,n)=>i(t,s,n),c=(s,n)=>a(t,s,n),u=async()=>{const s=new r;return await o(t,s)},g=()=>t.signOut();export{c as a,u as b,d as c,g as d};
