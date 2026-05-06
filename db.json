@@ -1,29 +1,42 @@
 {
   "options": [
     {
-      "id": "1",
+      "id": "william-ruto",
       "text": "William Ruto",
-      "votes": 0
+      "votes": 3
     },
     {
-      "id": "2",
+      "id": "fred-matiangi",
       "text": "Fred Matiang'i",
       "votes": 0
     },
     {
-      "id": "3",
+      "id": "kalonzo-musyoka",
       "text": "Kalonzo Musyoka",
       "votes": 0
     },
     {
-      "id": "EcY2VFq0b4E",
-      "text": "David Maraga",
+      "id": "8b2db734-dac7-4db9-a1cd-b382abb6327f",
+      "text": "test",
       "votes": 0
     }
   ],
-  "voter": {
-    "id": 1,
-    "hasVoted": false
-  },
-  "$schema": "./node_modules/json-server/schema.json"
+  "userVotes": [
+    {
+      "userId": "pdCqaYxw1UesYrEN0Gw0oAoRasK2",
+      "optionId": "william-ruto",
+      "id": 1
+    },
+    {
+      "userId": "frG0TMXO5wb4sN22HYMyNImBuPK2",
+      "optionId": "william-ruto",
+      "id": 2
+    },
+    {
+      "userId": "KLHXPCTcUbO1ca2qvxWAgfrQoEH2",
+      "userEmail": "kiplimo.kiptoo@student.novapioneer.com",
+      "optionId": "william-ruto",
+      "id": 3
+    }
+  ]
 }
