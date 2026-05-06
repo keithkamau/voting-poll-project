@@ -1,35 +1,37 @@
 import { useEffect, useState } from "react";
 import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
+import { db } from "./firebase/firebaseConfig";
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, writeBatch } from "firebase/firestore";
+import { useAuth } from "./contexts/authContexts";
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 function App() {
+  const { currentuser } = useAuth();
   const [options, setOptions] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [newOptionText, setNewOptionText] = useState("");
   const [addOptionError, setAddOptionError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Fetch options and voter status on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [optionsRes, voterRes] = await Promise.all([
-          fetch(`${API_BASE}/options`),
-          fetch(`${API_BASE}/voter`),
-        ]);
 
-        if (!optionsRes.ok || !voterRes.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
+        // Fetch options from json-server
+        const optionsRes = await fetch(`${API_BASE}/options`);
+        if (!optionsRes.ok) throw new Error("Failed to fetch options");
         const fetchedOptions = await optionsRes.json();
-        const voterData = await voterRes.json();
-
         setOptions(fetchedOptions);
-        setHasVoted(voterData.hasVoted);
+
+        // Check if current user has voted in Firestore
+        if (currentuser) {
+          const voterRef = doc(db, "voters", currentuser.uid);
+          const voterSnap = await getDoc(voterRef);
+          setHasVoted(voterSnap.exists() && voterSnap.data().hasVoted);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -38,7 +40,7 @@ function App() {
     };
 
     fetchData();
-  }, []);
+  }, [currentuser]);
 
   const totalVotes = options.reduce((total, option) => total + option.votes, 0);
 
@@ -62,8 +64,7 @@ function App() {
     if (!trimmedText) return;
 
     const isDuplicate = options.some(
-      (option) =>
-        option.text.trim().toLowerCase() === trimmedText.toLowerCase(),
+      (option) => option.text.trim().toLowerCase() === trimmedText.toLowerCase()
     );
 
     if (isDuplicate) {
@@ -84,9 +85,7 @@ function App() {
         body: JSON.stringify(newOption),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to add option");
-      }
+      if (!response.ok) throw new Error("Failed to add option");
 
       setOptions((prev) => [...prev, newOption]);
       setNewOptionText("");
@@ -97,42 +96,28 @@ function App() {
   };
 
   const handleVote = async (id) => {
-    if (hasVoted) return;
+    if (hasVoted || !currentuser) return;
 
     try {
       const optionToUpdate = options.find((opt) => opt.id === id);
       if (!optionToUpdate) return;
 
-      const updatedOption = {
-        ...optionToUpdate,
-        votes: optionToUpdate.votes + 1,
-      };
+      const updatedOption = { ...optionToUpdate, votes: optionToUpdate.votes + 1 };
 
+      // Update vote count in json-server
       const response = await fetch(`${API_BASE}/options/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedOption),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to vote");
-      }
+      if (!response.ok) throw new Error("Failed to vote");
 
-      setOptions((prev) =>
-        prev.map((opt) => (opt.id === id ? updatedOption : opt))
-      );
+      // Store voter status in Firestore per user
+      const voterRef = doc(db, "voters", currentuser.uid);
+      await setDoc(voterRef, { hasVoted: true, votedFor: id });
 
-      // Update voter status
-      const voterResponse = await fetch(`${API_BASE}/voter`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hasVoted: true }),
-      });
-
-      if (!voterResponse.ok) {
-        throw new Error("Failed to update voter status");
-      }
-
+      setOptions((prev) => prev.map((opt) => (opt.id === id ? updatedOption : opt)));
       setHasVoted(true);
     } catch (error) {
       console.error("Error voting:", error);
@@ -141,7 +126,7 @@ function App() {
 
   const handleReset = async () => {
     try {
-      // Reset all options
+      // Reset all vote counts in json-server
       const resetPromises = options.map((option) =>
         fetch(`${API_BASE}/options/${option.id}`, {
           method: "PATCH",
@@ -149,23 +134,17 @@ function App() {
           body: JSON.stringify({ ...option, votes: 0 }),
         })
       );
-
       await Promise.all(resetPromises);
 
-      // Reset voter status
-      const voterResponse = await fetch(`${API_BASE}/voter`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hasVoted: false }),
+      // Reset all voters in Firestore
+      const votersSnap = await getDocs(collection(db, "voters"));
+      const batch = writeBatch(db);
+      votersSnap.forEach((voterDoc) => {
+        batch.update(doc(db, "voters", voterDoc.id), { hasVoted: false });
       });
+      await batch.commit();
 
-      if (!voterResponse.ok) {
-        throw new Error("Failed to reset voter status");
-      }
-
-      setOptions((prev) =>
-        prev.map((option) => ({ ...option, votes: 0 }))
-      );
+      setOptions((prev) => prev.map((option) => ({ ...option, votes: 0 })));
       setHasVoted(false);
     } catch (error) {
       console.error("Error resetting votes:", error);
@@ -216,7 +195,7 @@ function App() {
                   </h2>
                   <p className='text-sm text-slate-500'>
                     {hasVoted
-                      ? "Thanks for voting. Buttons are locked for this browser."
+                      ? "Thanks for voting. Buttons are locked for your account."
                       : "Choose one option to cast your vote."}
                   </p>
                 </div>
