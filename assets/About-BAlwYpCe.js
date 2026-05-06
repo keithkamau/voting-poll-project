@@ -1,0 +1,1 @@
+import{j as e}from"./index-B-D3kpGu.js";function t(){return e.jsxs("main",{className:"min-h-screen bg-slate-950 p-6 text-white",children:[e.jsx("h1",{className:"text-3xl font-bold",children:"About This Poll"}),e.jsx("p",{className:"mt-4 text-slate-300",children:"This page is lazy-loaded only when someone visits /about."})]})}export{t as default};
