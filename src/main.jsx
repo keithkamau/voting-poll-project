@@ -7,8 +7,8 @@ import "./index.css";
 
 const App = lazy(() => import("./App.jsx"));
 const About = lazy(() => import("./About.jsx"));
-const Login = lazy(() => import("./pages/Login.jsx"));
-const Register = lazy(() => import("./pages/Register.jsx"));
+const Login = lazy(() => import("./components/auth/login/index.jsx"));
+const Register = lazy(() => import("./components/auth/register.index.jsx"));
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
