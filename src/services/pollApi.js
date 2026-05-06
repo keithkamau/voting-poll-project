@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3001";
+const API_URL = "https://voting-poll-backend-qzou.onrender.com";
 
 const request = async (path, options = {}) => {
   const response = await fetch(`${API_URL}${path}`, {
