@@ -41,6 +41,12 @@ export const createUserVote = (vote) =>
     body: JSON.stringify(vote),
   });
 
+export const updateUserVote = (id, vote) =>
+  request(`/userVotes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(vote),
+  });
+
 export const getUserVotes = () => request("/userVotes");
 
 export const deleteUserVote = (id) =>

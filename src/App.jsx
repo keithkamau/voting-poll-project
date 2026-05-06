@@ -12,6 +12,7 @@ import {
   getUserVote,
   getUserVotes,
   updateOption,
+  updateUserVote,
 } from "./services/pollApi";
 
 const applyVoteCounts = (options, votes) => {
@@ -36,6 +37,7 @@ function App() {
   const [pageError, setPageError] = useState("");
   const [isLoadingPoll, setIsLoadingPoll] = useState(true);
   const [isVoting, setIsVoting] = useState(false);
+  const [isChangingVote, setIsChangingVote] = useState(false);
 
   useEffect(() => {
     const loadPoll = async () => {
@@ -51,6 +53,7 @@ function App() {
 
         setOptions(applyVoteCounts(savedOptions, savedUserVotes));
         setUserVote(savedUserVote);
+        setIsChangingVote(false);
         setPageError("");
       } catch {
         setPageError(
@@ -104,26 +107,38 @@ function App() {
   };
 
   const handleVote = async (id) => {
-    if (hasVoted || isVoting) return;
+    if ((hasVoted && !isChangingVote) || isVoting) return;
 
     const selectedOption = options.find((option) => option.id === id);
     if (!selectedOption) return;
+
+    if (userVote?.optionId === id) {
+      setIsChangingVote(false);
+      return;
+    }
 
     setIsVoting(true);
 
     try {
       const existingVote = await getUserVote(currentuser.uid);
 
-      if (existingVote) {
+      if (existingVote && !isChangingVote) {
         setUserVote(existingVote);
         return;
       }
 
-      const savedVote = await createUserVote({
-        userId: currentuser.uid,
-        userEmail: currentuser.email,
-        optionId: id,
-      });
+      const savedVote =
+        existingVote && isChangingVote
+          ? await updateUserVote(existingVote.id, {
+              ...existingVote,
+              userEmail: currentuser.email,
+              optionId: id,
+            })
+          : await createUserVote({
+              userId: currentuser.uid,
+              userEmail: currentuser.email,
+              optionId: id,
+            });
       const savedUserVotes = await getUserVotes();
       const nextOptions = applyVoteCounts(options, savedUserVotes);
 
@@ -137,6 +152,7 @@ function App() {
         ),
       );
       setUserVote(savedVote);
+      setIsChangingVote(false);
       setPageError("");
     } catch {
       setPageError("Could not save your vote. Check JSON Server and try again.");
@@ -148,6 +164,11 @@ function App() {
   const handleSignOut = async () => {
     await doSignOut();
     navigate("/login");
+  };
+
+  const handleChangeVote = () => {
+    setIsChangingVote(true);
+    setPageError("");
   };
 
   const handleReset = async () => {
@@ -165,6 +186,7 @@ function App() {
         currentOptions.map((option) => ({ ...option, votes: 0 })),
       );
       setUserVote(null);
+      setIsChangingVote(false);
       setPageError("");
     } catch {
       setPageError("Could not reset the poll. Check JSON Server and try again.");
@@ -258,12 +280,28 @@ function App() {
                     Poll Results
                   </h2>
                   <p className='text-sm text-slate-500'>
-                    {hasVoted
-                      ? "Thanks for voting. Your Firebase account has already voted."
+                    {isChangingVote
+                      ? "Choose a different option to replace your previous vote."
+                      : hasVoted
+                        ? "Thanks for voting. Your Firebase account has already voted."
                       : "Choose one option to cast your vote."}
                   </p>
                 </div>
                 <div className='flex flex-col gap-2 sm:flex-row'>
+                  {hasVoted ? (
+                    <button
+                      type='button'
+                      onClick={handleChangeVote}
+                      disabled={isChangingVote || isVoting}
+                      className={`rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition focus:outline-none focus:ring-4 ${
+                        isChangingVote || isVoting
+                          ? "cursor-not-allowed bg-slate-200 text-slate-500 focus:ring-slate-100"
+                          : "bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-200"
+                      }`}
+                    >
+                      {isChangingVote ? "Pick new vote" : "Change vote"}
+                    </button>
+                  ) : null}
                   <button
                     type='button'
                     onClick={handleRefreshCounts}
@@ -289,7 +327,7 @@ function App() {
               <PollList
                 options={options}
                 onVote={handleVote}
-                hasVoted={hasVoted || isVoting}
+                hasVoted={(hasVoted && !isChangingVote) || isVoting}
                 totalVotes={totalVotes}
               />
             </div>
