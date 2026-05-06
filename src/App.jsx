@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
 
-const API_BASE = "https://voting-poll-backend-qzou.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 function App() {
   const [options, setOptions] = useState([]);
