@@ -5,6 +5,7 @@ import {
   doSignInWithGoogle,
 } from "../../../firebase/auth";
 import { useAuth } from "../../../contexts/authContexts";
+import googleIcon from "../../../assets/google-icon.svg";
 
 const Login = () => {
   const { userLoggedIn } = useAuth();
@@ -107,7 +108,7 @@ const Login = () => {
           className='mt-4 w-full border border-slate-300 py-2 rounded-lg font-bold hover:bg-slate-50 transition disabled:opacity-50 flex items-center justify-center gap-3'
         >
           <img
-            src='https://www.svgrepo.com/show/303108/google-icon-logo.svg'
+            src={googleIcon}
             alt='Google Icon'
             className='w-5 h-5'
           />
