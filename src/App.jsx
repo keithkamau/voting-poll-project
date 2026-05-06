@@ -1,56 +1,74 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PollForm from "./components/PollForm";
 import PollList from "./components/PollList";
-import { db } from "./firebase/firebaseConfig";
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, writeBatch } from "firebase/firestore";
-import { useAuth } from "./contexts/authContexts";
+import { useAuth } from "./contexts/authContexts/authContext";
+import { doSignOut } from "./firebase/auth";
+import {
+  createOption,
+  createUserVote,
+  deleteUserVote,
+  getOptions,
+  getUserVote,
+  getUserVotes,
+  updateOption,
+  updateUserVote,
+} from "./services/pollApi";
 
-const API_BASE = import.meta.env.VITE_API_BASE;
+const applyVoteCounts = (options, votes) => {
+  const voteCounts = votes.reduce((counts, vote) => {
+    counts[vote.optionId] = (counts[vote.optionId] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  return options.map((option) => ({
+    ...option,
+    votes: voteCounts[option.id] ?? 0,
+  }));
+};
 
 function App() {
   const { currentuser } = useAuth();
+  const navigate = useNavigate();
   const [options, setOptions] = useState([]);
-  const [hasVoted, setHasVoted] = useState(false);
+  const [userVote, setUserVote] = useState(null);
   const [newOptionText, setNewOptionText] = useState("");
   const [addOptionError, setAddOptionError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
+  const [isLoadingPoll, setIsLoadingPoll] = useState(true);
+  const [isVoting, setIsVoting] = useState(false);
+  const [isChangingVote, setIsChangingVote] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadPoll = async () => {
+      setIsLoadingPoll(true);
+      setUserVote(null);
+
       try {
-        setLoading(true);
+        const [savedOptions, savedUserVotes, savedUserVote] = await Promise.all([
+          getOptions(),
+          getUserVotes(),
+          getUserVote(currentuser.uid),
+        ]);
 
-        // Fetch options from json-server
-        const optionsRes = await fetch(`${API_BASE}/options`);
-        if (!optionsRes.ok) throw new Error("Failed to fetch options");
-        const fetchedOptions = await optionsRes.json();
-        setOptions(fetchedOptions);
-
-        // Check if current user has voted in Firestore
-        if (currentuser) {
-          const voterRef = doc(db, "voters", currentuser.uid);
-          const voterSnap = await getDoc(voterRef);
-          setHasVoted(voterSnap.exists() && voterSnap.data().hasVoted);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+        setOptions(applyVoteCounts(savedOptions, savedUserVotes));
+        setUserVote(savedUserVote);
+        setIsChangingVote(false);
+        setPageError("");
+      } catch {
+        setPageError(
+          "Could not load poll data. Make sure JSON Server is running on port 3001.",
+        );
       } finally {
-        setLoading(false);
+        setIsLoadingPoll(false);
       }
     };
 
-    fetchData();
-  }, [currentuser]);
+    loadPoll();
+  }, [currentuser.uid]);
 
   const totalVotes = options.reduce((total, option) => total + option.votes, 0);
-
-  if (loading) {
-    return (
-      <main className='min-h-screen bg-slate-950 px-4 py-6 text-slate-100 flex items-center justify-center sm:px-6 lg:px-8'>
-        <p className='text-lg font-semibold'>Loading poll data...</p>
-      </main>
-    );
-  }
+  const hasVoted = Boolean(userVote);
 
   const handleOptionTextChange = (event) => {
     setNewOptionText(event.target.value);
@@ -64,7 +82,8 @@ function App() {
     if (!trimmedText) return;
 
     const isDuplicate = options.some(
-      (option) => option.text.trim().toLowerCase() === trimmedText.toLowerCase()
+      (option) =>
+        option.text.trim().toLowerCase() === trimmedText.toLowerCase(),
     );
 
     if (isDuplicate) {
@@ -73,83 +92,134 @@ function App() {
     }
 
     try {
-      const newOption = {
+      const newOption = await createOption({
         id: crypto.randomUUID(),
         text: trimmedText,
         votes: 0,
-      };
-
-      const response = await fetch(`${API_BASE}/options`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newOption),
       });
 
-      if (!response.ok) throw new Error("Failed to add option");
-
-      setOptions((prev) => [...prev, newOption]);
+      setOptions((currentOptions) => [...currentOptions, newOption]);
       setNewOptionText("");
-    } catch (error) {
-      console.error("Error adding option:", error);
-      setAddOptionError("Failed to add option. Please try again.");
+      setPageError("");
+    } catch {
+      setAddOptionError("Could not save this option. Is JSON Server running?");
     }
   };
 
   const handleVote = async (id) => {
-    if (hasVoted || !currentuser) return;
+    if ((hasVoted && !isChangingVote) || isVoting) return;
+
+    const selectedOption = options.find((option) => option.id === id);
+    if (!selectedOption) return;
+
+    if (userVote?.optionId === id) {
+      setIsChangingVote(false);
+      return;
+    }
+
+    setIsVoting(true);
 
     try {
-      const optionToUpdate = options.find((opt) => opt.id === id);
-      if (!optionToUpdate) return;
+      const existingVote = await getUserVote(currentuser.uid);
 
-      const updatedOption = { ...optionToUpdate, votes: optionToUpdate.votes + 1 };
+      if (existingVote && !isChangingVote) {
+        setUserVote(existingVote);
+        return;
+      }
 
-      // Update vote count in json-server
-      const response = await fetch(`${API_BASE}/options/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedOption),
-      });
+      const savedVote =
+        existingVote && isChangingVote
+          ? await updateUserVote(existingVote.id, {
+              ...existingVote,
+              userEmail: currentuser.email,
+              optionId: id,
+            })
+          : await createUserVote({
+              userId: currentuser.uid,
+              userEmail: currentuser.email,
+              optionId: id,
+            });
+      const savedUserVotes = await getUserVotes();
+      const nextOptions = applyVoteCounts(options, savedUserVotes);
 
-      if (!response.ok) throw new Error("Failed to vote");
-
-      // Store voter status in Firestore per user
-      const voterRef = doc(db, "voters", currentuser.uid);
-      await setDoc(voterRef, { hasVoted: true, votedFor: id });
-
-      setOptions((prev) => prev.map((opt) => (opt.id === id ? updatedOption : opt)));
-      setHasVoted(true);
-    } catch (error) {
-      console.error("Error voting:", error);
+      await Promise.all(
+        nextOptions.map((option) => updateOption(option.id, option)),
+      );
+      setOptions((currentOptions) =>
+        currentOptions.map((option) =>
+          nextOptions.find((nextOption) => nextOption.id === option.id) ??
+          option,
+        ),
+      );
+      setUserVote(savedVote);
+      setIsChangingVote(false);
+      setPageError("");
+    } catch {
+      setPageError("Could not save your vote. Check JSON Server and try again.");
+    } finally {
+      setIsVoting(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await doSignOut();
+    navigate("/login");
+  };
+
+  const handleChangeVote = () => {
+    setIsChangingVote(true);
+    setPageError("");
   };
 
   const handleReset = async () => {
+    if (hasVoted) return;
+
     try {
-      // Reset all vote counts in json-server
-      const resetPromises = options.map((option) =>
-        fetch(`${API_BASE}/options/${option.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...option, votes: 0 }),
-        })
+      const votes = await getUserVotes();
+
+      await Promise.all([
+        ...votes.map((vote) => deleteUserVote(vote.id)),
+        ...options.map((option) => updateOption(option.id, { ...option, votes: 0 })),
+      ]);
+
+      setOptions((currentOptions) =>
+        currentOptions.map((option) => ({ ...option, votes: 0 })),
       );
-      await Promise.all(resetPromises);
-
-      // Reset all voters in Firestore
-      const votersSnap = await getDocs(collection(db, "voters"));
-      const batch = writeBatch(db);
-      votersSnap.forEach((voterDoc) => {
-        batch.update(doc(db, "voters", voterDoc.id), { hasVoted: false });
-      });
-      await batch.commit();
-
-      setOptions((prev) => prev.map((option) => ({ ...option, votes: 0 })));
-      setHasVoted(false);
-    } catch (error) {
-      console.error("Error resetting votes:", error);
+      setUserVote(null);
+      setIsChangingVote(false);
+      setPageError("");
+    } catch {
+      setPageError("Could not reset the poll. Check JSON Server and try again.");
     }
   };
+
+  const handleRefreshCounts = async () => {
+    try {
+      const [savedOptions, savedUserVotes] = await Promise.all([
+        getOptions(),
+        getUserVotes(),
+      ]);
+      const syncedOptions = applyVoteCounts(savedOptions, savedUserVotes);
+
+      await Promise.all(
+        syncedOptions.map((option) => updateOption(option.id, option)),
+      );
+      setOptions(syncedOptions);
+      setPageError("");
+    } catch {
+      setPageError("Could not refresh vote counts. Check JSON Server.");
+    }
+  };
+
+  if (isLoadingPoll) {
+    return (
+      <main className='min-h-screen bg-slate-950 flex items-center justify-center'>
+        <div className='text-slate-100 text-xl font-semibold animate-pulse'>
+          Loading poll...
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className='min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8'>
@@ -167,6 +237,9 @@ function App() {
                 Add options, vote once, watch the totals update live, and keep
                 everything saved through page refreshes.
               </p>
+              <p className='mt-4 text-sm font-semibold text-white/90'>
+                Signed in as {currentuser.email}
+              </p>
 
               <div className='mt-8 grid grid-cols-2 gap-3 sm:max-w-sm'>
                 <div className='rounded-2xl bg-white/15 p-4 backdrop-blur'>
@@ -178,9 +251,22 @@ function App() {
                   <p className='text-sm text-white/80'>Votes</p>
                 </div>
               </div>
+              <button
+                type='button'
+                onClick={handleSignOut}
+                className='mt-6 rounded-lg bg-white px-4 py-2 text-sm font-bold text-indigo-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-white/40'
+              >
+                Switch account
+              </button>
             </aside>
 
             <div className='bg-slate-50 p-5 text-slate-900 sm:p-8 lg:p-10'>
+              {pageError ? (
+                <div className='mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700'>
+                  {pageError}
+                </div>
+              ) : null}
+
               <PollForm
                 optionText={newOptionText}
                 onOptionTextChange={handleOptionTextChange}
@@ -191,27 +277,57 @@ function App() {
               <div className='mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                 <div>
                   <h2 className='text-xl font-bold text-slate-950'>
-                    Current Polls
+                    Poll Results
                   </h2>
                   <p className='text-sm text-slate-500'>
-                    {hasVoted
-                      ? "Thanks for voting. Buttons are locked for your account."
+                    {isChangingVote
+                      ? "Choose a different option to replace your previous vote."
+                      : hasVoted
+                        ? "Thanks for voting. Your Firebase account has already voted."
                       : "Choose one option to cast your vote."}
                   </p>
                 </div>
-                <button
-                  type='button'
-                  onClick={handleReset}
-                  className='rounded-lg bg-rose-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-rose-600 focus:outline-none focus:ring-4 focus:ring-rose-200'
-                >
-                  Reset votes
-                </button>
+                <div className='flex flex-col gap-2 sm:flex-row'>
+                  {hasVoted ? (
+                    <button
+                      type='button'
+                      onClick={handleChangeVote}
+                      disabled={isChangingVote || isVoting}
+                      className={`rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition focus:outline-none focus:ring-4 ${
+                        isChangingVote || isVoting
+                          ? "cursor-not-allowed bg-slate-200 text-slate-500 focus:ring-slate-100"
+                          : "bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-200"
+                      }`}
+                    >
+                      {isChangingVote ? "Pick new vote" : "Change vote"}
+                    </button>
+                  ) : null}
+                  <button
+                    type='button'
+                    onClick={handleRefreshCounts}
+                    className='rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-200'
+                  >
+                    Refresh counts
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleReset}
+                    disabled={hasVoted}
+                    className={`rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition focus:outline-none focus:ring-4 ${
+                      hasVoted
+                        ? "cursor-not-allowed bg-slate-200 text-slate-500 focus:ring-slate-100"
+                        : "bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-200"
+                    }`}
+                  >
+                    {hasVoted ? "Reset locked" : "Reset votes"}
+                  </button>
+                </div>
               </div>
 
               <PollList
                 options={options}
                 onVote={handleVote}
-                hasVoted={hasVoted}
+                hasVoted={(hasVoted && !isChangingVote) || isVoting}
                 totalVotes={totalVotes}
               />
             </div>
