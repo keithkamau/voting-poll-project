@@ -4,7 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/voting-poll-project/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>voting-poll-project</title>
+    <script>
+      const redirect = sessionStorage.getItem("redirect");
+      if (redirect && redirect !== "/") {
+        sessionStorage.removeItem("redirect");
+        window.history.replaceState(
+          null,
+          "",
+          "/voting-poll-project" + redirect,
+        );
+      }
+    </script>
+    <title>Votingg Poll App</title>
     <script type="module" crossorigin src="/voting-poll-project/assets/index-BQLUu_kg.js"></script>
     <link rel="stylesheet" crossorigin href="/voting-poll-project/assets/index-BRgBDz28.css">
   </head>
